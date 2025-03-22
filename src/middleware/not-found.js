@@ -3,11 +3,8 @@
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  */
-const notFoundMiddleware = (req, res) => {
-    res.status(404).json({
-        success: false,
-        error: `Route ${req.originalUrl} not found`
-    });
-};
+import { StatusCodes } from 'http-status-codes';
 
-export default notFoundMiddleware; 
+export const notFoundMiddleware = (req, res) => {
+    res.status(StatusCodes.NOT_FOUND).json({ msg: 'Route does not exist' });
+}; 

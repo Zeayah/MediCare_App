@@ -1,13 +1,7 @@
-
 import { StatusCodes } from 'http-status-codes';
 import logger from '../config/logger.js';
 
-const errorHandler = (err, req, res, next) => {
-    // If response is already sent, pass to default Express error handler
-    if (res.headersSent) {
-        return next(err);
-    }
-
+export const errorHandler = (err, req, res, next) => {
     logger.error('Error:', {
         name: err.name,
         message: err.message,
@@ -16,20 +10,36 @@ const errorHandler = (err, req, res, next) => {
         method: req.method
     });
 
-    // Default error response
-    const defaultError = {
+    const customError = {
         statusCode: err.statusCode || StatusCodes.INTERNAL_SERVER_ERROR,
-        message: err.message || 'Something went wrong, try again later',
+        message: err.message || 'Something went wrong, please try again later'
     };
 
-    // Send error response
-    res.status(defaultError.statusCode).json({
+    // Handle validation errors
+    if (err.name === 'ValidationError') {
+        customError.statusCode = StatusCodes.BAD_REQUEST;
+        customError.message = Object.values(err.errors)
+            .map(item => item.message)
+            .join(', ');
+    }
+
+    // Handle duplicate key errors
+    if (err.code && err.code === 11000) {
+        customError.statusCode = StatusCodes.BAD_REQUEST;
+        customError.message = `Duplicate value entered for ${Object.keys(err.keyValue)} field`;
+    }
+
+    // Handle cast errors
+    if (err.name === 'CastError') {
+        customError.statusCode = StatusCodes.BAD_REQUEST;
+        customError.message = `Invalid ${err.path}: ${err.value}`;
+    }
+
+    return res.status(customError.statusCode).json({
         success: false,
         error: {
-            message: defaultError.message,
+            message: customError.message,
             ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
         }
     });
 };
-
-export default errorHandler;

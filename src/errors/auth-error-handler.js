@@ -16,6 +16,7 @@ const authErrorHandler = (err, req, res, next) => {
         });
     }
 
+
     //Handles JWT errors
     if (err.name === "JsonWebTokenError" || err.name === "TokenExpiredError") {
         return res.status(StatusCodes.UNAUTHORIZED).json({

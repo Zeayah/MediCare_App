@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { UnauthenticatedError } from '../errors/unauthenticated.js';
-import { token } from 'morgan';
+//import { token } from 'morgan';
 
 
 

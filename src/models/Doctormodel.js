@@ -9,7 +9,7 @@ const doctorSchema =  new mongoose.Schema({
         required: true,
     },
     specialization:{
-        type: string,
+        type: String,
         required: true,
     },
     availableSlots: [{
@@ -18,7 +18,7 @@ const doctorSchema =  new mongoose.Schema({
     }],
     location:{
         type: {
-            type: string,
+            type: String,
             enum: ["Point"],//GeoJSON type
             required: true,
         },

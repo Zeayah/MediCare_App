@@ -2,13 +2,11 @@ import {StatusCodes} from "http-status-codes";
 
 //Base class for custom API errors
 class CustomAPIError extends Error {
-    constructor(message, StatusCode = StatusCodes.INTERNAL_SERVER_ERROR) {
+    constructor(message, statusCode) {
         super(message);
-        this.statusCode = this.statusCode;
-        this.status ="${statusCode}".startsWith("4") ? "fail" : "error";
-        this.Operational = true;
-
-        Error.captureStackTrace(this, this.construction);
+        this.statusCode = statusCode;
+        this.name = this.constructor.name;
+        Error.captureStackTrace(this, this.constructor);
     }
 };
 

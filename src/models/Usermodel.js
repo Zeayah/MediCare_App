@@ -1,82 +1,88 @@
 import mongoose from "mongoose"; 
+import bcrypt from 'bcryptjs';
 
-
-
-const userSchema =  new mongoose.Schema({
+const userSchema = new mongoose.Schema({
     firstname: {
-        type: string,
+        type: String,
         required: [true, "First name is required"],
-        unique: [true, "First name must be unique"],
         trim: true,
     },
     lastname: {
-        type: string,
+        type: String,
         required: [true, "Last name is required"],
-        unique: [true, "Last name must be unique"],
         trim: true,
     },
     email:{
-        type: string,
+        type: String,
         required: [true, "Email is required"],
         unique: true,
         trim: true,
         lowercase: true,
     },
     phone:{
-        type: string,
+        type: String,
         required: [true, "Phone number is required"],
         unique: true,
     },
     nationalID:{
         type: String,
-        required: [true, 'National ID is required'],
-        unique: true,
         trim: true,
+        sparse: true,
+        unique: true
     },
     dateOfBirth: {
         type: Date
-      }, 
-      googleID:{
-        type: string,
+    }, 
+    googleID:{
+        type: String,
         sparse: true,
-      },
-      password:{
-        type: string,
+    },
+    password:{
+        type: String,
         required: function() {
-            //Password only required if not using OAuth
             return !this.googleID; 
-        },
-        select: false,
-      },
-      role:{
-        type: string,
-        enum: ["Doctor", "Patient", "Admin"],
+        }
+    },
+    role:{
+        type: String,
+        enum: ["Doctor", "Patient"],
         required: true,
     },
     gender:{
-        type: string,
-        enum: ["Male", "Female", "Other"],
-        required: true,
+        type: String,
+        enum: ["Male", "Female", "Other"]
     },
     createdAt:{
         type: Date,
         default: Date.now,
     },
     isAuthenticated:{
-        type: boolean,
+        type: Boolean,
         default: false,
     },
     resetPasswordToken: {
         type: String,
         select: false,
-      },
-      resetPasswordExpires: {
+    },
+    resetPasswordExpires: {
         type: Date,
         select: false,
-      },
+    }
 },
 { timestamps: true }
 );
+
+// Add comparePassword method to the schema
+userSchema.methods.comparePassword = async function(candidatePassword) {
+    if (!this.password) {
+        throw new Error('No password set for this user');
+    }
+    try {
+        return await bcrypt.compare(candidatePassword, this.password);
+    } catch (error) {
+        throw new Error('Error comparing passwords');
+    }
+};
 
 const User = mongoose.model("User", userSchema);
 export default User;

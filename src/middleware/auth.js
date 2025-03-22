@@ -1,60 +1,61 @@
-import User from "../models/Usermodel.js";
-import jwt from "jsonwebtoken";
-import { UnauthenticatedError } from "../errors/unauthenticated.js";
-
+import jwt from 'jsonwebtoken';
+import { UnauthenticatedError } from '../errors/unauthenticated.js';
+import User from '../models/Usermodel.js';
 
 /**
-  * Middleware to authenticate user based on JWT token.
-  * @param {Object} req - The request object 
-  * @param {object} res - The response object 
-  * @param {function} next - The next middleware function.
-  */
-const authenticateUser = async (req, res, next) => {
+ * Authenticate user middleware
+ * Verifies JWT token and attaches user to request
+ */
+export const authenticateUser = async (req, res, next) => {
     try {
-        // Log all headers to see what's coming in
-        console.log('All Headers:', JSON.stringify(req.headers, null, 2));
-        
+        // Check header
         const authHeader = req.headers.authorization;
-        console.log('Authorization Header:', authHeader);
-
-        // Check if header exists
-        if (!authHeader) {
-            console.log('Missing Authorization header');
-            throw new UnauthenticatedError('Authorization header missing');
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            throw new UnauthenticatedError('Authentication invalid');
         }
 
-        // Check Bearer format
-        if (!authHeader.startsWith('Bearer ')) {
-            console.log('Invalid header format:', authHeader);
-            throw new UnauthenticatedError('Invalid token format. Must start with Bearer');
-        }
-
-        // Extract and verify token
         const token = authHeader.split(' ')[1];
-        console.log('Token:', token);
+
+        if (!process.env.JWT_SECRET) {
+            throw new Error('JWT_SECRET not configured');
+        }
 
         try {
-            const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            console.log('Decoded token:', decoded);
-
-            const user = await User.findById(decoded.userId);
-            console.log('Found user:', !!user, user?._id);
-
+            const payload = jwt.verify(token, process.env.JWT_SECRET);
+            
+            // Attach the user and their permissions to the req object
+            const user = await User.findById(payload.userId).select('-password');
             if (!user) {
                 throw new UnauthenticatedError('User not found');
             }
 
+            // Verify role is valid
+            if (!['Doctor', 'Patient'].includes(user.role)) {
+                throw new UnauthenticatedError('Invalid user role');
+            }
+
             req.user = user;
+            req.user.role = payload.role;
             next();
-        } catch (jwtError) {
-            console.error('JWT Error:', jwtError);
-            throw new UnauthenticatedError('Invalid token');
+        } catch (error) {
+            throw new UnauthenticatedError('Authentication invalid');
         }
     } catch (error) {
-        console.error('Auth Error:', error);
         next(error);
     }
 };
 
+/**
+ * Authorize user roles middleware
+ * @param {...string} roles - Allowed roles
+ */
+const authorizeRoles = (...roles) => {
+    return (req, res, next) => {
+        if (!roles.includes(req.user.role)) {
+            throw new UnauthenticatedError('Not authorized to access this route');
+        }
+        next();
+    };
+};
 
-export default authenticateUser;
+export { authorizeRoles };
